@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# bin/decorate <build-dir>
+#
+# The real detection for a decorator buildpack is done by the this script. The presence of
+# this script is what enables the meta-buildpack to identify decorators:
+#
+# Remember that the decorate script is invoked during the detect stage, so the compile step of
+# the real buildpack has not yet been run. But the full application environment is available
+# (including things like VCAP_SERVICES to determine what services are bound to the application).
+
+BIN_DIR=$(cd $(dirname $0); pwd)
+ROOT_DIR=$(dirname $BIN_DIR)
+BUILD_DIR=$1
+
+# Determine if the app meets the criteria to be decorated by this decorator
+# Exit 0 if you want the decorator to run, non-zero if not
+
+echo "decorate is running"
+env

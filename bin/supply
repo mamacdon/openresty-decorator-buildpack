@@ -100,6 +100,8 @@ cp -r "${nginx_deps_dir}/.." "${DEPS_DIR}/${INDEX}/"
 # hack profile.d paths to point to $DEPS_DIR/$INDEX
 sed -i "s#\$DEPS_DIR/[0-9]#\$DEPS_DIR/${INDEX}#g" "${DEPS_DIR}/${INDEX}/profile.d"/*
 
+# overrwrite config.yml with our own name
+sed -i s/nginx/openresty-decorator/ "${DEPS_DIR}/${INDEX}/config.yml"
 
 find "${DEPS_DIR}/${INDEX}/" -maxdepth 2
 

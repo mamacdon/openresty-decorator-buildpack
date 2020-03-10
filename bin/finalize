@@ -31,6 +31,7 @@ ls -al "$DEPS_DIR"
 
 # Copy all the profile.d scripts from every $DEPS_DIR/$index into the app build directory
 # there's probably a better way to do this
+# THESE ARE NOT GOING TO THE RIGHT PLACE - why in $HOME/app not $HOME
 app_profile_dir="$BUILD_DIR"/.profile.d
 
 mkdir -p "$app_profile_dir"

@@ -17,5 +17,9 @@
 
 # This is not great, since it has to be kept in sync with what the nginx buildpack generates.
 # should find a better way
-#echo -e "---\ndefault_process_types:\n  web: varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
-echo -e "---\ndefault_process_types:\n  web: env && varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
+###echo -e "---\ndefault_process_types:\n  web: varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
+
+##echo -e "---\ndefault_process_types:\n  web: env && pwd && ls -al . && varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
+
+INDEX=1
+echo -e "---\ndefault_process_types:\n  web: varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$HOME/vcap/deps/${INDEX}/nginx/modules && nginx -p \$PWD -c ./nginx.conf"

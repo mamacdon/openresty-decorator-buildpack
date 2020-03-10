@@ -19,15 +19,17 @@
 # The cache directory provided to the finalize script is preserved even when the buildpack is
 # upgraded or otherwise changes. The supply script of the same buildpack also has access to this
 # cache directory.
-
+#shellcheck disable=SC2016
 set -x
 echo "bin/finalize is running"
 
 BUILD_DIR="$1"
 DEPS_DIR="$3"
+INDEX="$4"
+
 ls -al "$DEPS_DIR"
 
-# Copy all the profile.d scripts into the app build directory
+# Copy all the profile.d scripts from every $DEPS_DIR/$index into the app build directory
 # there's probably a better way to do this
 app_profile_dir="$BUILD_DIR"/.profile.d
 
@@ -42,7 +44,16 @@ for index_dir in "$DEPS_DIR"/* ; do
         cp "$file" "${app_profile_dir}/${index_number}_${filebase}"
     done
 done
+## ----------------------------------------------------------------------------------------------------
+
+# app_profile_dir="$BUILD_DIR"/.profile.d
+# mkdir -p "$app_profile_dir"
+
+# cp "$DEPS_DIR"/"$INDEX"/profile.d/* "$app_profile_dir"
+
+## ----------------------------------------------------------------------------------------------------
+
+echo 'export PATH=$DEPS_DIR/'"${INDEX}"'/bin$([[ ! -z "${PATH:-}" ]] && echo ":$PATH")' > "$app_profile_dir"/000_multi-supply.sh
 
 chmod +x "$app_profile_dir"/*
-
 ls -al "$app_profile_dir"

@@ -64,13 +64,6 @@ EOL
   exit 1
 fi
 
-echo "NGINX DEPS DIR ${nginx_deps_dir}"
-ls -al "$nginx_deps_dir"
-
-
-echo "NGINX DEPS DIR parent ${nginx_deps_dir}/.."
-ls -al "$nginx_deps_dir"/..
-
 # Add nginx/resty binaries to PATH
 nginx_deps_dir=$(realpath "$nginx_deps_dir")
 path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
@@ -100,7 +93,14 @@ while IFS= read -r line ; do
     opm install "$line"
 done < "$deps_file"
 
-# Copy nginx's profile.d to our own, so we basically steal its shell init paths etc
-#cp -r "${nginx_deps_dir}/../profile.d" "${DEPS_DIR}/${INDEX}"
+# Copy the entire folder from nginx's deps directory to ours, so we're basically stealing it all
+# TODO do this first before dumping crap into nginx's deps folder.
+cp -r "${nginx_deps_dir}/.." "${DEPS_DIR}/${INDEX}/"
+
+# hack profile.d paths to point to $DEPS_DIR/$INDEX
+sed -i "s#\$DEPS_DIR/[0-9]#\$DEPS_DIR/${INDEX}#g" "${DEPS_DIR}/${INDEX}/profile.d"/*
+
+
+find "${DEPS_DIR}/${INDEX}/" -maxdepth 2
 
 echo "ok done"

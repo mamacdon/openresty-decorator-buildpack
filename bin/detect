@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#
 # bin/detect <build-dir>
-# We are a decorator, not a buildpack, so we always decline to build
-exit 1
+#
+# The script is called with one argument, the build directory for the app.
+# The build directory contains the app files uploaded when you run cf push.
+#
+# The detect script returns an exit code of 0 if the buildpack is compatible with
+# the app. In the case of system buildpacks, the script also prints the buildpack
+# name, version, and other information to STDOUT.
+#
+#
+echo "bin/detect running"
+env
+exit 0

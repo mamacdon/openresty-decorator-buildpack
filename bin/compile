@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-#
-# If the bin/decorate script returned true (zero), the meta-buildpack will run the bin/compile script. 
-# The environment for the bin/compile script looks exactly like it would for a real buildpack, except
-# the real buildpack has already run, so the entire droplet is already present in BUILD_DIR.
-
-echo "compile is running"
-env

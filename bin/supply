@@ -1,10 +1,106 @@
 #!/usr/bin/env bash
+#
+# bin/supply <build-dir> <cache-dir> <deps-dir> <index>
+#
+# The supply script provides dependencies for the app and runs for all buildpacks.
+# All output sent to STDOUT is relayed to the user through the cf CLI.
+#
+# The script is run with four arguments:
+#
+# - The build directory for the app
+# - The cache directory, which is a location the buildpack can use to store assets during the build process
+# - The deps directory, which is where dependencies provided by all buildpacks are installed
+# - The index, which is a number that represents the ordinal position of the buildpack
+#
+# The supply script stores dependencies in `deps/index`. It may also look in other directories
+# within deps to find dependencies supplied by other buildpacks.
+# 
+# The supply script must not modify anything outside of the deps/index directory. Staging may
+# fail if such modification is detected.
+# 
+# The cache directory provided to the supply script of the final buildpack is preserved even
+# when the buildpack is upgraded or otherwise changes. The finalize script also has access
+# to this cache directory.
+# 
+# The cache directories provided to the supply scripts of non-final buildpacks are cleared
+# if those buildpacks are upgraded or otherwise change.
+#shellcheck disable=SC2006,SC2155
 
-echo "supply running"
-env
+echo "bin/supply running"
 
 BIN_DIR=$(cd $(dirname $0); pwd)
-ROOT_DIR=$(dirname $BIN_DIR)
+#ROOT_DIR=$(dirname $BIN_DIR)
 BUILD_DIR=$1
-CACHE_DIR=$2
-ENV_DIR=$3
+#CACHE_DIR=$2
+DEPS_DIR=$3
+INDEX=$4
+
+set -x
+
+# echo "BUILD_DIR: $BUILD_DIR"
+# ls -al "$BUILD_DIR"
+
+deps_file="$BUILD_DIR"/opm.deps
+if ! [ -f "$deps_file" ] ; then
+  cat <<EOL
+WARNING: no `opm.deps` file was present in your app. Nothing to do.
+EOL
+  exit 0
+fi
+
+echo "DEPS_DIR: $DEPS_DIR"
+ls -al "$DEPS_DIR"
+
+echo "DEPS_DIR/index: ${DEPS_DIR}/${INDEX}"
+ls -al "${DEPS_DIR}/${INDEX}"
+
+# Find where the Nginx buildpack was installed in DEPS_DIR
+nginx_deps_dir=$(find "$DEPS_DIR" -type d -name nginx -print -quit)
+if [[ "$nginx_deps_dir" == "" ]]; then
+  cat <<EOL
+Could not find `nginx` folder in DEPS_DIR. Ensure your app was pushed with the nginx buildpack
+and that it precedes openresty-decorator-buildpack in the `buildpacks` list.
+EOL
+  exit 1
+fi
+
+echo "NGINX DEPS DIR ${nginx_deps_dir}"
+ls -al "$nginx_deps_dir"
+
+
+echo "NGINX DEPS DIR parent ${nginx_deps_dir}/.."
+ls -al "$nginx_deps_dir"/..
+
+# Add nginx/resty binaries to PATH
+nginx_deps_dir=$(realpath "$nginx_deps_dir")
+path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
+export PATH=${nginx_deps_dir}/bin:${nginx_deps_dir}/nginx/bin:${nginx_deps_dir}/luajit/bin${path_suffix}
+
+# Problem: as a side effect of the Nginx buildpack having done its work, the nginx_path in openresty's
+# config file is set to some temp folder that no longer exists:
+#
+#   my $nginx_path = '/tmp/d20190829-7-6tk6jx/openresty/nginx/sbin/nginx';
+#
+# opm wants to keep installing into that folder and it's hard to change. To work around, create the
+# folder that opm wants as a symlink to ${nginx_deps_dir}/nginx.
+#
+# NOTE: I *think* that as the final buildpack, we are permitted to modify any folder in $DEPS_DIR,
+# but the PCF docs are not clear on this point. If we're breaking the rules here, we should instead
+# copy $nginx_deps_dir into $DEPS_DIR/$INDEX, and then modify it.
+nginx_path=$(grep "my \$nginx_path =" "${nginx_deps_dir}"/bin/resty | awk '{print $4}' | tr -d \'\;)
+temp_dir=${nginx_path%/openresty/nginx/sbin/nginx} # remove suffix
+
+mkdir -p "$temp_dir"
+( cd "$temp_dir" && ln -s "$nginx_deps_dir" openresty )
+
+# Install the modules into nginx's deps folder.
+while IFS= read -r line ; do
+    [[ $line =~ ^[[:space:]]*$ ]] && continue
+
+    opm install "$line"
+done < "$deps_file"
+
+# Copy nginx's profile.d to our own, so we basically steal its shell init paths etc
+#cp -r "${nginx_deps_dir}/../profile.d" "${DEPS_DIR}/${INDEX}"
+
+echo "ok done"

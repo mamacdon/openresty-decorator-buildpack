@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#
+# bin/release <build-dir>
+#
+# The release script provides feedback metadata to CFAR indicating how the app should be executed.
+# The script is run with one argument, the build directory. The script must print to standard output
+# a Yaml document in the following format:
+#
+# default_process_types:
+#   web: start_command.filetype
+#
+# `default_process_types` indicates the type of app being run and the command used to start it.
+# This start command is used if a start command is not specified in the cf push or in a Procfile.
+#
+# At this time, only the web type of apps is supported.
+
+
+# This is not great, since it has to be kept in sync with what the nginx buildpack generates.
+# should find a better way
+#echo -e "---\ndefault_process_types:\n  web: varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
+echo -e "---\ndefault_process_types:\n  web: env && varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"

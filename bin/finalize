@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#
+# bin/finalize <build-dir> <cache-dir> <deps-dir> <index>
+#
+# The finalize script prepares the app for launch and runs only for the last buildpack.
+# All output sent to STDOUT is relayed to the user through the cf CLI.
+#
+# The script is run with four arguments:
+#
+# - The build directory for the app
+# - The cache directory, which is a location the buildpack can use to store assets during the build process
+# - The deps directory, which is where dependencies provided by all buildpacks are installed
+# - The index, which is a number that represents the ordinal position of the buildpack
+#
+# The finalize script may find dependencies installed by the supply script of the same buildpack
+# in deps/index. It may also look in other directories within deps to find dependencies supplied
+# by other buildpacks.
+#
+# The cache directory provided to the finalize script is preserved even when the buildpack is
+# upgraded or otherwise changes. The supply script of the same buildpack also has access to this
+# cache directory.
+
+set -x
+echo "bin/finalize is running"
+
+BUILD_DIR="$1"
+DEPS_DIR="$3"
+ls -al "$DEPS_DIR"
+
+# Copy all the profile.d scripts into the app build directory
+# there's probably a better way to do this
+app_profile_dir="$BUILD_DIR"/.profile.d
+
+mkdir -p "$app_profile_dir"
+
+for index_dir in "$DEPS_DIR"/* ; do
+    [[ -d "$index_dir"/profile.d ]] || continue
+    index_number=$(basename "$index_dir")
+
+    for file in "$index_dir"/profile.d/* ; do
+        filebase=$(basename "$file")
+        cp "$file" "${app_profile_dir}/${index_number}_${filebase}"
+    done
+done
+
+chmod +x "$app_profile_dir"/*
+
+ls -al "$app_profile_dir"

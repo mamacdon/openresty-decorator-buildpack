@@ -1,3 +1,5 @@
+**WARNING:** this project is highly experimental, use at your own risk
+
 # openresty-decorator-buildpack
 
 A helper buildpack for Pivotal CloudFoundry. This buildpack augments Nginx + OpenResty application
@@ -23,6 +25,7 @@ buildpacks:
 Create a `opm.deps` file containing the list of opm packages you wish to install, one per line.
 
 ```text
+cdbattags/lua-resty-jwt
 zmartzone/lua-resty-openidc
 ```
 

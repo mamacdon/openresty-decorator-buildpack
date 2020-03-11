@@ -36,7 +36,7 @@ BUILD_DIR=$1
 DEPS_DIR=$3
 INDEX=$4
 
-set -eux
+set -ex
 
 my_deps=$(realpath "$DEPS_DIR/$INDEX")
 
@@ -73,8 +73,24 @@ sed -i s/nginx/${BUILDPACK_NAME}/ "${my_deps}/config.yml"
 # Problem: as a side effect of the Nginx buildpack having done its work, the nginx_path in openresty's
 # config file is set to some temp folder that no longer exists:
 #   my $nginx_path = '/tmp/d20190829-7-6tk6jx/openresty/nginx/sbin/nginx';
-# opm wants to keep installing into this folder. Change the path to be inside ${my_deps} so it will work
-sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
+# opm wants to keep installing into this folder
+
+# Change the path to be inside ${my_deps} so it will work
+#sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
+#nginx_path=$(grep "my \$nginx_path =" "${nginx_deps_dir}"/bin/resty | awk '{print $4}' | tr -d \'\;)
+
+# Create the temp folder it wants, as a symlink to $my_deps/nginx so that it will "work" but really install into
+# our deps folder
+nginx_path=$(grep "my \$nginx_path =" "$my_deps"/nginx/bin/resty | awk '{print $4}' | tr -d \'\;)
+opm_temp_dir=${nginx_path%/openresty/nginx/sbin/nginx} # remove suffix
+mkdir -p "$opm_temp_dir"
+( cd "$opm_temp_dir" && ln -s "$my_deps"/nginx openresty )
+
+echo "opm temp dir"
+ls -al "$opm_temp_dir"
+
+echo "nginx"
+ls -al $opm_temp_dir/openresty/nginx/sbin/nginx
 
 # Same problem but with the luajit.pc file
 # TODO i'm not sure we actually need this"???????
@@ -95,7 +111,7 @@ fi
 # Install the modules into nginx's deps folder.
 # First we must add nginx binaries to PATH and LD_LIBRARY_PATH
 path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
-ld_suffix=$([[ -n "${LD_LIBRARY_PATH:-}" ]] && echo ":$LD_LIBRARY_PATH")
+ld_suffix=$([[ -n "${LD_LIBRARY_PATH:-}" ]] && echo ":$LD_LIBRARY_PATH" || echo "")
 export PATH=${my_deps}/bin:${my_deps}/nginx/bin:${my_deps}/nginx/luajit/bin${path_suffix}
 export LD_LIBRARY_PATH=${my_deps}/nginx/luajit/lib${ld_suffix}
 
@@ -103,8 +119,9 @@ echo "  -> Installing opm depencendies..."
 while IFS= read -r line ; do
   [[ $line =~ ^[[:space:]]*$ ]] && continue
 
-  # This line is not working during staging for some reason
-  opm install "$line"
+  # install with resty_modules = $my_deps/nginx
+  # set inc_dirs
+  opm --install-dir="$my_deps"/nginx get "$line"
 done < "$deps_file"
 
 find "${DEPS_DIR}/${INDEX}/" -maxdepth 2

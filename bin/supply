@@ -73,14 +73,8 @@ sed -i s/nginx/${BUILDPACK_NAME}/ "${my_deps}/config.yml"
 # Problem: as a side effect of the Nginx buildpack having done its work, the nginx_path in openresty's
 # config file is set to some temp folder that no longer exists:
 #   my $nginx_path = '/tmp/d20190829-7-6tk6jx/openresty/nginx/sbin/nginx';
-# opm wants to keep installing into this folder
-
-# Change the path to be inside ${my_deps} so it will work
-#sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
-#nginx_path=$(grep "my \$nginx_path =" "${nginx_deps_dir}"/bin/resty | awk '{print $4}' | tr -d \'\;)
-
-# Create the temp folder it wants, as a symlink to $my_deps/nginx so that it will "work" but really install into
-# our deps folder
+# opm wants to keep installing into this folder. Appease it by creating the folder as a symlink to
+# $my_deps/nginx -- it will work and install into our deps folder.
 nginx_path=$(grep "my \$nginx_path =" "$my_deps"/nginx/bin/resty | awk '{print $4}' | tr -d \'\;)
 opm_temp_dir=${nginx_path%/openresty/nginx/sbin/nginx} # remove suffix
 mkdir -p "$opm_temp_dir"
@@ -119,8 +113,6 @@ echo "  -> Installing opm depencendies..."
 while IFS= read -r line ; do
   [[ $line =~ ^[[:space:]]*$ ]] && continue
 
-  # install with resty_modules = $my_deps/nginx
-  # set inc_dirs
   opm --install-dir="$my_deps"/nginx get "$line"
 done < "$deps_file"
 

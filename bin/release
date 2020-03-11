@@ -19,7 +19,7 @@
 # should find a better way
 ###echo -e "---\ndefault_process_types:\n  web: varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$DEP_DIR/nginx/modules && nginx -p \$PWD -c ./nginx.conf"
 
-## TODO how does DEP_DIR get set in the PCF supply buildpack? can we export env vars from supply or finalize?
+## TODO how does DEP_DIR get set in the PCF supply buildpack?
 
 INDEX=1
 echo -e "---\ndefault_process_types:\n  web: LD_LIBRARY_PATH=\$HOME/vcap/deps/${INDEX}/nginx/luajit/lib varify -buildpack-yml-path ./buildpack.yml ./nginx.conf \$HOME/modules \$HOME/vcap/deps/${INDEX}/nginx/modules && nginx -p \$PWD -c ./nginx.conf"

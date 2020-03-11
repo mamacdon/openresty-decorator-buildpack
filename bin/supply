@@ -36,7 +36,7 @@ BUILD_DIR=$1
 DEPS_DIR=$3
 INDEX=$4
 
-set -xuo
+set -eux
 
 my_deps=$(realpath "$DEPS_DIR/$INDEX")
 
@@ -77,7 +77,7 @@ sed -i s/nginx/${BUILDPACK_NAME}/ "${my_deps}/config.yml"
 sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
 
 # Same problem but with the luajit.pc file
-# TODO i'm not sure we actually need this
+# TODO i'm not sure we actually need this"???????
 sed -i 's#^prefix=.*$#prefix='"$my_deps"/nginx/luajit'#' "$my_deps"/nginx/luajit/lib/pkgconfig/luajit.pc
 
 # Set the lua_package_path in the application's nginx conf file, http section.
@@ -86,20 +86,24 @@ nginx_conf=$(find "$BUILD_DIR" -name nginx.conf -print -quit)
 if [[ $nginx_conf == "" ]]; then
   echo 'WARNING: could not add lua_package_path to your nginx.conf. Make sure you add it yourself.' >&2
 else
+  echo " -> Adding lua_package_path to nginx.conf"
   awk '/http \{/{print;print "  lua_package_path \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.lua;;\";";next}1' "$nginx_conf" > /tmp/conf
   mv "$nginx_conf" "$nginx_conf".0
   mv /tmp/conf "$nginx_conf"
-  grep -A3 http "$nginx_conf"
 fi
 
 # Install the modules into nginx's deps folder.
-# First we must add nginx binaries to PATH
+# First we must add nginx binaries to PATH and LD_LIBRARY_PATH
 path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
+ld_suffix=$([[ -n "${LD_LIBRARY_PATH:-}" ]] && echo ":$LD_LIBRARY_PATH")
 export PATH=${my_deps}/bin:${my_deps}/nginx/bin:${my_deps}/nginx/luajit/bin${path_suffix}
+export LD_LIBRARY_PATH=${my_deps}/nginx/luajit/lib${ld_suffix}
 
+echo "  -> Installing opm depencendies..."
 while IFS= read -r line ; do
   [[ $line =~ ^[[:space:]]*$ ]] && continue
 
+  # This line is not working during staging for some reason
   opm install "$line"
 done < "$deps_file"
 

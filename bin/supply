@@ -123,7 +123,7 @@ done < "$deps_file"
 # Generate a ca-certs.pem file containing the trusted root CAs. This is not strictly necessary
 # to use openresty, but in practice it is helpful since Lua doesn't seem to obey the system's
 # trusted CAs on its own
-cat /etc/ssl/certs/* > "$my_deps"/ca-certs.pem
+cat /etc/ssl/certs/* > "$BUILD_DIR"/ca-certs.pem
 
 find "${DEPS_DIR}/${INDEX}/" -maxdepth 2
 

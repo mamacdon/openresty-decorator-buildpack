@@ -27,7 +27,8 @@ BUILD_DIR="$1"
 DEPS_DIR="$3"
 INDEX="$4"
 
-ls -al "$DEPS_DIR"
+echo "BUILD_DIR:"
+ls -al "$BUILD_DIR"
 
 # Copy all the profile.d scripts from every $DEPS_DIR/$index into the app build directory
 # there's probably a better way to do this

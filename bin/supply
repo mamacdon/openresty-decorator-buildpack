@@ -70,18 +70,21 @@ sed -i "s#\$DEPS_DIR/[0-9]#\$DEPS_DIR/${INDEX}#g" "${my_deps}/profile.d"/*
 # overwrite config.yml with our own buildpack name so we're not claiming to be "nginx"
 sed -i s/nginx/${BUILDPACK_NAME}/ "${my_deps}/config.yml"
 
-# Add nginx binaries to PATH
-path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
-export PATH=${my_deps}/bin:${my_deps}/nginx/bin:${my_deps}/nginx/luajit/bin${path_suffix}
-
 # Problem: as a side effect of the Nginx buildpack having done its work, the nginx_path in openresty's
 # config file is set to some temp folder that no longer exists:
 #   my $nginx_path = '/tmp/d20190829-7-6tk6jx/openresty/nginx/sbin/nginx';
 # opm wants to keep installing into this folder. Change the path to be inside ${my_deps} so it will work
-#
 sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
 
+# Same problem but with the luajit.pc file
+sed -i 's#^prefix=.*$#prefix='"$my_deps"/nginx/luajit'#' "$my_deps"/nginx/luajit/lib/pkgconfig/luajit.pc
+# /deps/1/nginx/luajit/lib/pkgconfig/luajit.pc:8:prefix=/tmp/d20190829-7-6tk6jx/openresty/luajit
+
 # Install the modules into nginx's deps folder.
+# First we must add nginx binaries to PATH
+path_suffix=$([[ -n "${PATH:-}" ]] && echo ":$PATH")
+export PATH=${my_deps}/bin:${my_deps}/nginx/bin:${my_deps}/nginx/luajit/bin${path_suffix}
+
 while IFS= read -r line ; do
   [[ $line =~ ^[[:space:]]*$ ]] && continue
 

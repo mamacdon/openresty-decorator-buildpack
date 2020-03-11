@@ -30,3 +30,16 @@ zmartzone/lua-resty-openidc
 ```
 
 Push your application.
+
+## Configuration
+
+The environment variables below can be set at staging time to override the buildpack's default behavior.
+
+- `ODB_SKIP_LUA_PATHS`: when `true`, prevents the buildpack from adding `lua_package_path`
+  and `lua_package_cpath` to your `nginx.conf`. Set this if you prefer to configure these paths
+  yourself.
+
+- `ODB_SKIP_LUA_SSL`: when `true`, prevents the buildpack from adding a `lua_ssl_trusted_certificate`
+  directive to your `nginx.conf`. By default the buildpack adds this directive, trusting all the
+  default root CAs present in `/etc/ssl/certs/`. Set this variable if you wish to manage the
+  CA list yourself.

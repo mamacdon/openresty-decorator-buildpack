@@ -59,3 +59,22 @@ echo 'export PATH=$DEPS_DIR/'"${INDEX}"'/bin$([[ ! -z "${PATH:-}" ]] && echo ":$
 
 chmod +x "$app_profile_dir"/*
 ls -al "$app_profile_dir"
+
+# Add lua_ssl_trusted_certificate to nginx.conf.
+# We can't do this in the `supply` phase because it would confuse the base Nginx buildpack:
+# when it tries to check the configuration the ca-certs.pem file hasn't been created yet
+# so would fail.
+if [[ "$ODB_SKIP_LUA_SSL" == false ]]; then
+  echo ' -> Skip adding lua_ssl_trusted_certificate to nginx.conf' >&2
+else
+    nginx_conf=$(find "$BUILD_DIR" -name nginx.conf -print -quit)
+    if [[ $nginx_conf == "" ]]; then
+    echo 'WARNING: could not add lua_ssl_trusted_certificate to your nginx.conf. You might need to set it yourself.' >&2
+    else
+    echo " -> Adding lua_ssl_trusted_certificate to nginx.conf"
+    awk '/http \{/{print;print "  lua_ssl_trusted_certificate \"/home/vcap/app/ca-certs.pem\";";next}1' "$nginx_conf" > /tmp/conf
+
+    mv "$nginx_conf" "$nginx_conf".1
+    mv /tmp/conf "$nginx_conf"
+    fi
+fi

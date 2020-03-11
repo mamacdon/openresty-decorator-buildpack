@@ -92,18 +92,22 @@ sed -i 's#^prefix=.*$#prefix='"$my_deps"/nginx/luajit'#' "$my_deps"/nginx/luajit
 
 # Set the lua_package_path and lua_package_cpath in the application's nginx conf file, http section.
 # This is ridiculous. There has to be a better way
-nginx_conf=$(find "$BUILD_DIR" -name nginx.conf -print -quit)
-if [[ $nginx_conf == "" ]]; then
-  echo 'WARNING: could not add lua_package_path to your nginx.conf. Make sure you add it yourself.' >&2
+if [[ "$ODB_SKIP_LUA_PATHS" == false ]]; then
+  echo ' -> Skip adding lua_package_path and lua_package_cpath to nginx.conf' >&2
 else
-  echo " -> Adding lua_package_path to nginx.conf"
-  awk '/http \{/{print;print "  lua_package_path \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.lua;;\";";next}1' "$nginx_conf" > /tmp/conf.0
+  nginx_conf=$(find "$BUILD_DIR" -name nginx.conf -print -quit)
+  if [[ $nginx_conf == "" ]]; then
+    echo 'WARNING: could not add lua_package_path to your nginx.conf. Make sure you add it yourself.' >&2
+  else
+    echo " -> Adding lua_package_path to nginx.conf"
+    awk '/http \{/{print;print "  lua_package_path \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.lua;;\";";next}1' "$nginx_conf" > /tmp/conf.0
 
-  echo " -> Adding lua_package_cpath to nginx.conf"
-  awk '/http \{/{print;print "  lua_package_cpath \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.so;;\";";next}1' /tmp/conf.0 > /tmp/conf.1
+    echo " -> Adding lua_package_cpath to nginx.conf"
+    awk '/http \{/{print;print "  lua_package_cpath \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.so;;\";";next}1' /tmp/conf.0 > /tmp/conf.1
 
-  mv "$nginx_conf" "$nginx_conf".0
-  mv /tmp/conf.1 "$nginx_conf"
+    mv "$nginx_conf" "$nginx_conf".0
+    mv /tmp/conf.1 "$nginx_conf"
+  fi
 fi
 
 # Install the modules into nginx's deps folder.

@@ -77,8 +77,20 @@ sed -i s/nginx/${BUILDPACK_NAME}/ "${my_deps}/config.yml"
 sed -i 's#^my $nginx_path =.*$#my $nginx_path = '"'${my_deps}/nginx/nginx/sbin/nginx'"';#' "$my_deps"/nginx/bin/resty
 
 # Same problem but with the luajit.pc file
+# TODO i'm not sure we actually need this
 sed -i 's#^prefix=.*$#prefix='"$my_deps"/nginx/luajit'#' "$my_deps"/nginx/luajit/lib/pkgconfig/luajit.pc
-# /deps/1/nginx/luajit/lib/pkgconfig/luajit.pc:8:prefix=/tmp/d20190829-7-6tk6jx/openresty/luajit
+
+# Set the lua_package_path in the application's nginx conf file, http section.
+# This is ridiculous. There has to be a better way
+nginx_conf=$(find "$BUILD_DIR" -name nginx.conf -print -quit)
+if [[ $nginx_conf == "" ]]; then
+  echo 'WARNING: could not add lua_package_path to your nginx.conf. Make sure you add it yourself.' >&2
+else
+  awk '/http \{/{print;print "  lua_package_path \"/home/vcap/deps/'"${INDEX}"'/nginx/lualib/?.lua;;\";";next}1' "$nginx_conf" > /tmp/conf
+  mv "$nginx_conf" "$nginx_conf".0
+  mv /tmp/conf "$nginx_conf"
+  grep -A3 http "$nginx_conf"
+fi
 
 # Install the modules into nginx's deps folder.
 # First we must add nginx binaries to PATH

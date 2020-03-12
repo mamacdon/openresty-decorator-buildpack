@@ -36,18 +36,12 @@ BUILD_DIR=$1
 DEPS_DIR=$3
 INDEX=$4
 
-set -ex
+set -e # -ex
 
 my_deps=$(realpath "$DEPS_DIR/$INDEX")
 
 deps_file="$BUILD_DIR"/opm.deps
 [ -f "$deps_file" ] || echo 'WARNING: no `opm.deps` file was present in your app. Did you forget something?' >&2
-
-echo "DEPS_DIR: $DEPS_DIR"
-ls -al "$DEPS_DIR"
-
-echo "my_deps: ${my_deps}"
-ls -al "$my_deps"
 
 # Find where the Nginx buildpack was installed in DEPS_DIR
 nginx_deps_dir=$(find "$DEPS_DIR" -type d -name nginx -print -quit)/..
@@ -61,8 +55,6 @@ fi
 
 # Copy the entire folder from nginx's deps directory to ours, we're basically stealing it all
 cp -rT "$nginx_deps_dir" "$my_deps"
-
-ls -al "$my_deps"
 
 # hack paths within profile.d to point to our dep dir, not nginx's
 sed -i "s#\$DEPS_DIR/[0-9]#\$DEPS_DIR/${INDEX}#g" "${my_deps}/profile.d"/*
@@ -79,12 +71,6 @@ nginx_path=$(grep "my \$nginx_path =" "$my_deps"/nginx/bin/resty | awk '{print $
 opm_temp_dir=${nginx_path%/openresty/nginx/sbin/nginx} # remove suffix
 mkdir -p "$opm_temp_dir"
 ( cd "$opm_temp_dir" && ln -s "$my_deps"/nginx openresty )
-
-echo "opm temp dir"
-ls -al "$opm_temp_dir"
-
-echo "nginx"
-ls -al $opm_temp_dir/openresty/nginx/sbin/nginx
 
 # Same problem but with the luajit.pc file
 # TODO i'm not sure we actually need this"???????

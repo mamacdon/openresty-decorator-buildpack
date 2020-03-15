@@ -2,16 +2,16 @@
 
 # openresty-decorator-buildpack
 
-A helper buildpack for Pivotal CloudFoundry. This buildpack augments Nginx + OpenResty application
-by adding additional opm modules to the application.
+A helper buildpack for Pivotal CloudFoundry. This buildpack allows you to add additional opm modules
+to an application that uses the Nginx buildpack and OpenResty.
 
-This buildpack must be used along with with the
-Nginx buildpack and OpenResty.
+## Requirements
+
+- A CloudFoundry application based on the Nginx buildpack that uses OpenResty
 
 ## Usage
 
-Deploy an app using the Nginx buildpack and OpenResty. See [here](https://github.com/cloudfoundry/nginx-buildpack/tree/master/fixtures/openresty) for a sample application (the important part is the
-`buildpack.yml` file).
+Deploy an app using the Nginx buildpack and OpenResty. See [here](https://github.com/cloudfoundry/nginx-buildpack/tree/master/fixtures/openresty) for a sample application (the important part is the`buildpack.yml` file).
 
 When you've got that working, edit your app's `manifest.yml` file. Add `openresty-decorator-buildpack`
 to the list of buildpacks, making sure it appears **after** the nginx buildpack.
@@ -30,6 +30,13 @@ zmartzone/lua-resty-openidc
 ```
 
 Push your application.
+
+When it starts, the opm packages will be available and can be loaded
+using `require()` like any Lua module:
+
+```lua
+require('resty.openidc').authenticate({ … })
+```
 
 ## Configuration
 
